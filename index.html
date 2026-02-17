@@ -339,7 +339,10 @@ width: 10%;
 <div class="overlay-title green" id="overlay-title">ELIP_SNACK</div>
 <div class="overlay-sub" id="overlay-sub">SYSTÈME PRÊT</div>
 <div class="final-score" id="final-score" style="display:none">0000</div>
+<div style="display: flex; flex-direction: column; gap: 16px;">
+<button class="btn" id="continue-btn" style="display:none"><span>CONTINUER</span></button>
 <button class="btn" id="start-btn"><span>INITIALISER</span></button>
+</div>
 </div>
 </div>
 
@@ -591,6 +594,7 @@ if (e.key === 'Enter' && this.state !== 'running') this.start();
 });
 
 document.getElementById('start-btn').addEventListener('click', () => this.start());
+document.getElementById('continue-btn').addEventListener('click', () => this.#resume());
 }
 
 #togglePause() {
@@ -601,10 +605,18 @@ document.getElementById('overlay-title').textContent = 'PAUSE';
 document.getElementById('overlay-title').className = 'overlay-title green';
 document.getElementById('overlay-sub').textContent = 'SYSTÈME EN ATTENTE';
 document.getElementById('final-score').style.display = 'none';
-document.getElementById('start-btn').querySelector('span').textContent = 'REPRENDRE';
+document.getElementById('start-btn').querySelector('span').textContent = 'RECOMMENCER';
+document.getElementById('start-btn').style.display = 'block';
+document.getElementById('continue-btn').style.display = 'block';
 } else if (this.state === 'paused') {
-this.start();
+this.#resume();
 }
+}
+
+#resume() {
+this.state = 'running';
+this.lastTick = performance.now();
+this.#hideOverlay();
 }
 
 #tick(now) {
@@ -685,6 +697,8 @@ const fs = document.getElementById('final-score');
 fs.style.display = 'block';
 fs.textContent = pad(this.score);
 document.getElementById('start-btn').querySelector('span').textContent = 'RÉINITIALISER';
+document.getElementById('start-btn').style.display = 'block';
+document.getElementById('continue-btn').style.display = 'none';
 document.getElementById('overlay').classList.remove('hidden');
 }, 400);
 }
@@ -714,6 +728,7 @@ sl.textContent = `LV.${lv}`;
 
 #hideOverlay() {
 document.getElementById('overlay').classList.add('hidden');
+document.getElementById('continue-btn').style.display = 'none';
 }
 
 #drawGrid(ctx) {

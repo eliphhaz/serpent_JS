@@ -2,6 +2,8 @@
 
 Un jeu de Snake avec une esthétique cyberpunk et néon, développé en HTML5 Canvas avec JavaScript vanilla.
 
+🎮 **[Jouer maintenant](https://eliphhaz.github.io/serpent_JS/)**
+
 ## 🎮 Caractéristiques
 
 - Design visuel cyberpunk avec effets néon et ombres lumineuses
