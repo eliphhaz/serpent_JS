@@ -99,6 +99,7 @@ display: flex;
 gap: 24px;
 width: 100%;
 padding: 0 4px;
+flex-wrap: wrap;
 }
 
 .hud-item {
@@ -330,6 +331,14 @@ width: 10%;
 <span class="hud-label">FRUITS</span>
 <span class="hud-value" id="fruits">0</span>
 </div>
+<div class="hud-item" id="shield-indicator" style="display:none;">
+<span class="hud-label">🛡️ BOUCLIER</span>
+<span class="hud-value" style="color: #b366ff;" id="shield-time">0</span>
+</div>
+<div class="hud-item" id="invisibility-indicator" style="display:none;">
+<span class="hud-label">👁️ INVISIBLE</span>
+<span class="hud-value" style="color: #ffaa00;" id="invisibility-time">0</span>
+</div>
 </div>
 
 <div class="canvas-wrap">
@@ -484,11 +493,14 @@ this.pulse = 0;
 this.rotation = 0;
 }
 
-spawn(snake) {
+spawn(snake, obstacles = []) {
 let pos;
 do {
 pos = { x: rand(0, GRID), y: rand(0, GRID) };
-} while (snake.body.some(s => s.x === pos.x && s.y === pos.y));
+} while (
+snake.body.some(s => s.x === pos.x && s.y === pos.y) ||
+obstacles.some(o => o.x === pos.x && o.y === pos.y)
+);
 this.pos = pos;
 this.pulse = 0;
 this.rotation = 0;
@@ -535,6 +547,45 @@ ctx.restore();
 }
 }
 
+class PowerUp {
+constructor(type) {
+this.type = type;
+this.pos = { x: 0, y: 0 };
+this.pulse = 0;
+this.rotation = 0;
+this.active = false;
+}
+
+spawn(snake, food, obstacles) {
+let pos;
+let attempts = 0;
+do {
+pos = { x: rand(0, GRID), y: rand(0, GRID) };
+attempts++;
+} while (
+attempts < 50 &&
+(snake.body.some(s => s.x === pos.x && s.y === pos.y) ||
+(pos.x === food.pos.x && pos.y === food.pos.y) ||
+obstacles.some(o => o.x === pos.x && o.y === pos.y))
+);
+if (attempts < 50) {
+this.pos = pos;
+this.pulse = 0;
+this.rotation = 0;
+this.active = true;
+}
+}
+
+update() {
+this.pulse = (this.pulse + 0.1) % (Math.PI * 2);
+this.rotation += 0.03;
+}
+
+deactivate() {
+this.active = false;
+}
+}
+
 class Game {
 constructor(canvas) {
 this.canvas = canvas;
@@ -542,6 +593,12 @@ this.ctx    = canvas.getContext('2d');
 this.snake  = new Snake();
 this.food   = new Food();
 this.particles = [];
+this.obstacles = [];
+this.powerUp = null;
+this.shield = false;
+this.invisibility = false;
+this.shieldTimer = 0;
+this.invisibilityTimer = 0;
 this.score  = 0;
 this.best   = parseInt(localStorage.getItem('snake_best') || '0');
 this.state  = 'idle';
@@ -560,9 +617,15 @@ start() {
 GRID = 20;
 CELL = 400 / GRID;
 this.snake.reset();
-this.food.spawn(this.snake);
+this.food.spawn(this.snake, this.obstacles);
 this.score = 0;
 this.particles = [];
+this.obstacles = [];
+this.powerUp = null;
+this.shield = false;
+this.invisibility = false;
+this.shieldTimer = 0;
+this.invisibilityTimer = 0;
 this.interval = BASE_INTERVAL;
 this.flashAlpha = 0;
 this.foodCount = 0;
@@ -626,13 +689,40 @@ this.lastTick = now;
 
 this.snake.move();
 
-if (this.snake.hitsWall() || this.snake.hitsSelf()) {
+// Décrémenter les timers des power-ups
+if (this.shieldTimer > 0) {
+this.shieldTimer--;
+if (this.shieldTimer === 0) this.shield = false;
+}
+if (this.invisibilityTimer > 0) {
+this.invisibilityTimer--;
+if (this.invisibilityTimer === 0) this.invisibility = false;
+}
+
+// Vérifier les collisions
+const hitObstacle = this.#hitsObstacle();
+if (this.snake.hitsWall() || this.snake.hitsSelf() || (hitObstacle && !this.invisibility)) {
+if (this.shield) {
+// Le bouclier absorbe le coup
+this.shield = false;
+this.shieldTimer = 0;
+this.flashAlpha = 0.3;
+} else {
 this.#gameOver();
 return;
 }
+}
 
+// Vérifier si on mange la nourriture
 if (this.snake.head.x === this.food.pos.x && this.snake.head.y === this.food.pos.y) {
 this.#eatFood();
+}
+
+// Vérifier si on prend un power-up
+if (this.powerUp && this.powerUp.active) {
+if (this.snake.head.x === this.powerUp.pos.x && this.snake.head.y === this.powerUp.pos.y) {
+this.#collectPowerUp();
+}
 }
 }
 
@@ -656,9 +746,17 @@ console.log('New GRID:', GRID, 'New CELL:', CELL);
 this.stage++;
 this.#showStageMessage();
 this.snake.adjustToNewGrid(oldGrid);
+this.#spawnObstacles();
 }
 
-this.food.spawn(this.snake);
+// Chance de faire apparaître un power-up (20% de chance)
+if (Math.random() < 0.2 && (!this.powerUp || !this.powerUp.active)) {
+const type = Math.random() < 0.5 ? 'shield' : 'invisibility';
+this.powerUp = new PowerUp(type);
+this.powerUp.spawn(this.snake, this.food, this.obstacles);
+}
+
+this.food.spawn(this.snake, this.obstacles);
 this.interval = Math.max(MIN_INTERVAL, this.interval - 3);
 
 if (this.score > this.best) {
@@ -676,6 +774,44 @@ msgEl.textContent = msg;
 msgEl.style.animation = 'none';
 void msgEl.offsetWidth;
 msgEl.style.animation = 'messagePopup 2s ease';
+}
+
+#spawnObstacles() {
+const numObstacles = Math.min(this.stage - 1, 8);
+this.obstacles = [];
+for (let i = 0; i < numObstacles; i++) {
+let pos;
+let attempts = 0;
+do {
+pos = { x: rand(0, GRID), y: rand(0, GRID) };
+attempts++;
+} while (
+attempts < 50 &&
+(this.snake.body.some(s => s.x === pos.x && s.y === pos.y) ||
+(pos.x === this.food.pos.x && pos.y === this.food.pos.y) ||
+this.obstacles.some(o => o.x === pos.x && o.y === pos.y))
+);
+if (attempts < 50) {
+this.obstacles.push(pos);
+}
+}
+}
+
+#hitsObstacle() {
+return this.obstacles.some(o => o.x === this.snake.head.x && o.y === this.snake.head.y);
+}
+
+#collectPowerUp() {
+if (this.powerUp.type === 'shield') {
+this.shield = true;
+this.shieldTimer = 100; // Dure environ 10 secondes
+} else if (this.powerUp.type === 'invisibility') {
+this.invisibility = true;
+this.invisibilityTimer = 80; // Dure environ 8 secondes
+}
+this.powerUp.deactivate();
+this.score += 50;
+this.#updateHUD();
 }
 
 #gameOver() {
@@ -724,6 +860,26 @@ const pct = ((BASE_INTERVAL - this.interval) / (BASE_INTERVAL - MIN_INTERVAL)) *
 sf.style.width = Math.max(5, pct) + '%';
 const lv = Math.floor(pct / 20) + 1;
 sl.textContent = `LV.${lv}`;
+
+// Mettre à jour les indicateurs de power-ups
+const shieldInd = document.getElementById('shield-indicator');
+const invisInd = document.getElementById('invisibility-indicator');
+const shieldTime = document.getElementById('shield-time');
+const invisTime = document.getElementById('invisibility-time');
+
+if (this.shield && this.shieldTimer > 0) {
+shieldInd.style.display = 'flex';
+shieldTime.textContent = Math.ceil(this.shieldTimer / 10);
+} else {
+shieldInd.style.display = 'none';
+}
+
+if (this.invisibility && this.invisibilityTimer > 0) {
+invisInd.style.display = 'flex';
+invisTime.textContent = Math.ceil(this.invisibilityTimer / 10);
+} else {
+invisInd.style.display = 'none';
+}
 }
 
 #hideOverlay() {
@@ -827,12 +983,24 @@ const size = CELL - padding * 2;
 ctx.save();
 
 if (isHead) {
+// Changer la couleur selon les power-ups actifs
+if (this.shield) {
+ctx.shadowColor = C.trail;
+ctx.shadowBlur = 20;
+ctx.fillStyle = C.trail;
+} else if (this.invisibility) {
+ctx.shadowColor = '#ffaa00';
+ctx.shadowBlur = 20;
+ctx.fillStyle = '#ffaa00';
+ctx.globalAlpha = 0.7;
+} else {
 ctx.shadowColor = C.head;
 ctx.shadowBlur = 18;
 ctx.fillStyle = C.head;
+}
 } else {
 const alpha = 1 - t * 0.7;
-ctx.globalAlpha = alpha;
+ctx.globalAlpha = alpha * (this.invisibility ? 0.5 : 1);
 ctx.shadowColor = C.body;
 ctx.shadowBlur = 8 * (1 - t);
 ctx.fillStyle = i % 2 === 0 ? C.body : C.bodyDim;
@@ -889,6 +1057,98 @@ ctx.restore();
 this.flashAlpha -= 0.06;
 }
 
+#drawObstacles(ctx) {
+this.obstacles.forEach(obs => {
+const cx = obs.x * CELL;
+const cy = obs.y * CELL;
+const padding = 2;
+const size = CELL - padding * 2;
+
+ctx.save();
+// Si invisibilité active, rendre les obstacles semi-transparents
+if (this.invisibility) {
+ctx.globalAlpha = 0.3;
+}
+ctx.shadowColor = C.danger;
+ctx.shadowBlur = 12;
+ctx.fillStyle = C.danger;
+ctx.strokeStyle = C.danger;
+ctx.lineWidth = 2;
+
+this.#roundRect(ctx, cx + padding, cy + padding, size, size, 2);
+ctx.fill();
+
+ctx.globalAlpha = (this.invisibility ? 0.1 : 0.3);
+ctx.strokeRect(cx + padding - 2, cy + padding - 2, size + 4, size + 4);
+
+ctx.restore();
+});
+}
+
+#drawPowerUp(ctx) {
+if (!this.powerUp || !this.powerUp.active) return;
+
+this.powerUp.update();
+const { x, y } = this.powerUp.pos;
+const cx = x * CELL + CELL / 2;
+const cy = y * CELL + CELL / 2;
+const pulse = Math.sin(this.powerUp.pulse) * 0.2 + 0.8;
+const r = (CELL / 2 - 3) * pulse;
+
+const color = this.powerUp.type === 'shield' ? C.trail : '#ffaa00';
+
+ctx.save();
+ctx.shadowColor = color;
+ctx.shadowBlur = 20;
+
+// Rotation
+ctx.save();
+ctx.translate(cx, cy);
+ctx.rotate(this.powerUp.rotation);
+
+// Dessiner l'icône selon le type
+if (this.powerUp.type === 'shield') {
+// Bouclier
+ctx.strokeStyle = color;
+ctx.fillStyle = color;
+ctx.lineWidth = 2;
+ctx.beginPath();
+ctx.moveTo(0, -r);
+ctx.quadraticCurveTo(r, -r/2, r, r/2);
+ctx.quadraticCurveTo(r, r, 0, r + 3);
+ctx.quadraticCurveTo(-r, r, -r, r/2);
+ctx.quadraticCurveTo(-r, -r/2, 0, -r);
+ctx.closePath();
+ctx.fill();
+ctx.globalAlpha = 0.5;
+ctx.stroke();
+} else {
+// Invisibilité (œil)
+ctx.fillStyle = color;
+ctx.strokeStyle = color;
+ctx.lineWidth = 2;
+ctx.beginPath();
+ctx.ellipse(0, 0, r, r * 0.6, 0, 0, Math.PI * 2);
+ctx.fill();
+ctx.fillStyle = C.bg;
+ctx.beginPath();
+ctx.arc(0, 0, r * 0.4, 0, Math.PI * 2);
+ctx.fill();
+}
+
+ctx.restore();
+
+// Cercle extérieur
+ctx.globalAlpha = 0.3;
+ctx.strokeStyle = color;
+ctx.lineWidth = 1;
+ctx.beginPath();
+ctx.arc(cx, cy, r + 5, 0, Math.PI * 2);
+ctx.stroke();
+
+ctx.restore();
+}
+
 #render(now) {
 const ctx = this.ctx;
 
@@ -897,6 +1157,8 @@ ctx.fillRect(0, 0, 400, 400);
 
 this.#drawGrid(ctx);
 this.#drawTrail(ctx);
+this.#drawObstacles(ctx);
+this.#drawPowerUp(ctx);
 this.#drawFood(ctx);
 this.#drawSnake(ctx);
 
