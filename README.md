@@ -1,0 +1,60 @@
+# 🐍 ELIP_SNACK // SYS v2.4
+
+Un jeu de Snake avec une esthétique cyberpunk et néon, développé en HTML5 Canvas avec JavaScript vanilla.
+
+## 🎮 Caractéristiques
+
+- Design visuel cyberpunk avec effets néon et ombres lumineuses
+- Système de niveaux progressif qui augmente la difficulté
+- Effets de particules lors de la consommation de fruits
+- Messages d'encouragement et de game over aléatoires
+- Système de score avec meilleur record sauvegardé localement
+- Contrôles intuitifs au clavier
+- Animations fluides et effets visuels impressionnants
+
+## 🕹️ Contrôles
+
+- **Flèches directionnelles (↑↓←→)** : Diriger le serpent
+- **WASD** : Contrôles alternatifs
+- **P** : Pause/Reprendre le jeu
+- **Entrée** : Démarrer le jeu (quand il est arrêté)
+
+## 🚀 Comment jouer
+
+1. Ouvrez le fichier `snake.html` dans votre navigateur web
+2. Cliquez sur "INITIALISER" ou appuyez sur Entrée pour commencer
+3. Dirigez le serpent pour manger les fruits (cercles cyan brillants)
+4. Évitez de percuter les murs ou votre propre corps
+5. Tous les 4 fruits, le niveau augmente et le plateau s'agrandit
+
+## 📊 Système de score
+
+- Chaque fruit rapporte des points de base + bonus de vitesse
+- La vitesse augmente progressivement avec chaque fruit
+- Le meilleur score est automatiquement sauvegardé dans le navigateur
+- Le plateau commence en 20x20 et peut s'étendre jusqu'à 40x40
+
+## 🎨 Style visuel
+
+Le jeu présente :
+- Palette de couleurs néon (vert, cyan, rouge, violet)
+- Effets de lueur et d'ombres
+- Animations de particules
+- Interface HUD style arcade
+- Effets de balayage CRT
+- Typographies futuristes (Orbitron et Share Tech Mono)
+
+## 🛠️ Technologies
+
+- HTML5 Canvas
+- JavaScript ES6+
+- CSS3 avec animations et effets
+- LocalStorage pour la persistance des données
+
+## 📝 Crédits
+
+Développé avec passion pour le gaming rétro et l'esthétique cyberpunk.
+
+---
+
+**Profitez du jeu et essayez de battre votre record !** 🎯
