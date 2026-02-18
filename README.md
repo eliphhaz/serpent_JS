@@ -4,6 +4,8 @@ Un jeu de Snake avec une esthétique cyberpunk et néon, développé en HTML5 Ca
 
 🎮 **[Jouer maintenant](https://eliphhaz.github.io/serpent_JS/)**
 
+📱 **Version mobile Android disponible !** Voir [README_MOBILE.md](README_MOBILE.md)
+
 ## 🎮 Caractéristiques
 
 - Design visuel cyberpunk avec effets néon et ombres lumineuses
@@ -52,6 +54,29 @@ Le jeu présente :
 - JavaScript ES6+
 - CSS3 avec animations et effets
 - LocalStorage pour la persistance des données
+- Capacitor pour la version mobile native
+
+## 📱 Versions disponibles
+
+### 🌐 Version Web
+Joue directement dans ton navigateur : https://eliphhaz.github.io/serpent_JS/
+- Accessible partout
+- Contrôles tactiles intégrés
+- Mises à jour automatiques
+
+### 📲 Version Mobile (Android)
+Application native Android avec Capacitor
+- Vraie app Android
+- Vibrations haptiques
+- Fonctionne hors ligne
+- Voir [README_MOBILE.md](README_MOBILE.md) pour l'installation
+
+## 📚 Documentation
+
+- [README_MOBILE.md](README_MOBILE.md) - Guide de la version mobile
+- [QUICK_START_MOBILE.md](QUICK_START_MOBILE.md) - Démarrage rapide mobile
+- [CREATE_APK_GUIDE.md](CREATE_APK_GUIDE.md) - Créer un APK Android
+- [CAPACITOR_SETUP.md](CAPACITOR_SETUP.md) - Configuration Capacitor détaillée
 
 ## 📝 Crédits
 
