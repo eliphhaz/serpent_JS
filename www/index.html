@@ -330,6 +330,54 @@ width: 10%;
 }
 
 .flicker { animation: flicker 0.4s ease; }
+
+.pause-btn {
+position: fixed;
+top: 20px;
+right: 20px;
+width: 50px;
+height: 50px;
+border-radius: 50%;
+background: rgba(0, 255, 136, 0.1);
+border: 2px solid var(--neon-green);
+color: var(--neon-green);
+font-size: 24px;
+display: flex;
+align-items: center;
+justify-content: center;
+cursor: pointer;
+z-index: 1000;
+box-shadow: var(--glow-green);
+transition: all 0.3s;
+backdrop-filter: blur(5px);
+}
+
+.pause-btn:hover {
+background: rgba(0, 255, 136, 0.2);
+transform: scale(1.1);
+}
+
+.pause-btn:active {
+transform: scale(0.95);
+}
+
+.pause-btn.playing span::before {
+content: '⏸';
+}
+
+.pause-btn.paused span::before {
+content: '▶';
+}
+
+@media (max-width: 768px) {
+.pause-btn {
+width: 60px;
+height: 60px;
+font-size: 28px;
+top: 10px;
+right: 10px;
+}
+}
 </style>
 </head>
 <body>
@@ -393,7 +441,12 @@ width: 10%;
 <span><span class="key">WASD</span> ALTERNATIF</span>
 <span><span class="key">P</span> PAUSE</span>
 <span><span class="key">👆</span> SWIPE TACTILE</span>
+<span><span class="key">👆👆</span> DOUBLE-CLIC PAUSE</span>
 </div>
+
+<button class="pause-btn" id="pause-btn" style="display:none">
+<span>⏸</span>
+</button>
 </div>
 
 <script>
@@ -660,6 +713,7 @@ this.state = 'running';
 this.lastTick = performance.now();
 this.#updateHUD();
 this.#hideOverlay();
+this.#updatePauseButton();
 }
 
 #bindEvents() {
@@ -685,11 +739,19 @@ if (e.key === 'Enter' && this.state !== 'running') this.start();
 document.getElementById('start-btn').addEventListener('click', () => this.start());
 document.getElementById('continue-btn').addEventListener('click', () => this.#resume());
 
+// Bouton pause
+const pauseBtn = document.getElementById('pause-btn');
+pauseBtn.addEventListener('click', (e) => {
+e.stopPropagation();
+this.#togglePause();
+});
+
 // Contrôles tactiles
 let touchStartX = 0;
 let touchStartY = 0;
 let touchEndX = 0;
 let touchEndY = 0;
+let lastTap = 0;
 
 const minSwipeDistance = 30;
 
@@ -697,6 +759,17 @@ this.canvas.addEventListener('touchstart', e => {
 e.preventDefault();
 touchStartX = e.changedTouches[0].screenX;
 touchStartY = e.changedTouches[0].screenY;
+
+// Détection double-clic
+const currentTime = new Date().getTime();
+const tapLength = currentTime - lastTap;
+if (tapLength < 300 && tapLength > 0) {
+// Double-clic détecté
+this.#togglePause();
+lastTap = 0;
+} else {
+lastTap = currentTime;
+}
 }, { passive: false });
 
 this.canvas.addEventListener('touchend', e => {
@@ -744,6 +817,7 @@ document.getElementById('final-score').style.display = 'none';
 document.getElementById('start-btn').querySelector('span').textContent = 'RECOMMENCER';
 document.getElementById('start-btn').style.display = 'block';
 document.getElementById('continue-btn').style.display = 'block';
+this.#updatePauseButton();
 } else if (this.state === 'paused') {
 this.#resume();
 }
@@ -753,6 +827,21 @@ this.#resume();
 this.state = 'running';
 this.lastTick = performance.now();
 this.#hideOverlay();
+this.#updatePauseButton();
+}
+
+#updatePauseButton() {
+const pauseBtn = document.getElementById('pause-btn');
+if (this.state === 'running') {
+pauseBtn.style.display = 'flex';
+pauseBtn.className = 'pause-btn playing';
+pauseBtn.querySelector('span').textContent = '⏸';
+} else if (this.state === 'paused') {
+pauseBtn.className = 'pause-btn paused';
+pauseBtn.querySelector('span').textContent = '▶';
+} else {
+pauseBtn.style.display = 'none';
+}
 }
 
 #tick(now) {
