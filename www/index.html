@@ -441,7 +441,6 @@ right: 10px;
 <span><span class="key">WASD</span> ALTERNATIF</span>
 <span><span class="key">P</span> PAUSE</span>
 <span><span class="key">👆</span> SWIPE TACTILE</span>
-<span><span class="key">👆👆</span> DOUBLE-CLIC PAUSE</span>
 </div>
 
 <button class="pause-btn" id="pause-btn" style="display:none">
@@ -746,46 +745,33 @@ e.stopPropagation();
 this.#togglePause();
 });
 
-// Contrôles tactiles
+// Contrôles tactiles améliorés
 let touchStartX = 0;
 let touchStartY = 0;
-let touchEndX = 0;
-let touchEndY = 0;
-let lastTap = 0;
+let touchMoved = false;
 
-const minSwipeDistance = 30;
+const minSwipeDistance = 20; // Réduit de 30 à 20 pour plus de réactivité
 
 this.canvas.addEventListener('touchstart', e => {
 e.preventDefault();
 touchStartX = e.changedTouches[0].screenX;
 touchStartY = e.changedTouches[0].screenY;
-
-// Détection double-clic
-const currentTime = new Date().getTime();
-const tapLength = currentTime - lastTap;
-if (tapLength < 300 && tapLength > 0) {
-// Double-clic détecté
-this.#togglePause();
-lastTap = 0;
-} else {
-lastTap = currentTime;
-}
+touchMoved = false;
 }, { passive: false });
 
-this.canvas.addEventListener('touchend', e => {
+this.canvas.addEventListener('touchmove', e => {
 e.preventDefault();
-if (this.state !== 'running') return;
+if (this.state !== 'running' || touchMoved) return;
 
-touchEndX = e.changedTouches[0].screenX;
-touchEndY = e.changedTouches[0].screenY;
+const touchCurrentX = e.changedTouches[0].screenX;
+const touchCurrentY = e.changedTouches[0].screenY;
 
-const deltaX = touchEndX - touchStartX;
-const deltaY = touchEndY - touchStartY;
+const deltaX = touchCurrentX - touchStartX;
+const deltaY = touchCurrentY - touchStartY;
 
-// Vérifier si le swipe est assez long
-if (Math.abs(deltaX) < minSwipeDistance && Math.abs(deltaY) < minSwipeDistance) {
-return;
-}
+// Détection rapide pendant le mouvement
+if (Math.abs(deltaX) > minSwipeDistance || Math.abs(deltaY) > minSwipeDistance) {
+touchMoved = true;
 
 // Déterminer la direction du swipe
 if (Math.abs(deltaX) > Math.abs(deltaY)) {
@@ -803,6 +789,11 @@ this.snake.setDir(0, 1); // Bas
 this.snake.setDir(0, -1); // Haut
 }
 }
+}
+}, { passive: false });
+
+this.canvas.addEventListener('touchend', e => {
+e.preventDefault();
 }, { passive: false });
 }
 
