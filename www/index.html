@@ -96,7 +96,7 @@ header {
 position: fixed;
 top: 10px;
 left: 10px;
-right: 70px;
+right: 60px;
 z-index: 999;
 width: auto;
 padding: 0;
@@ -135,8 +135,11 @@ justify-content: center;
 
 @media (max-width: 768px) {
 .hud {
-gap: 8px;
+gap: 6px;
 padding: 0 10px;
+flex-wrap: nowrap;
+overflow-x: auto;
+justify-content: flex-start;
 }
 }
 
@@ -146,10 +149,24 @@ flex-direction: column;
 min-width: 60px;
 }
 
+@media (max-width: 768px) {
+.hud-item {
+min-width: 50px;
+flex-shrink: 0;
+}
+}
+
 .hud-label {
 font-size: clamp(7px, 2vw, 9px);
 letter-spacing: 3px;
 color: #2a6a5a;
+}
+
+@media (max-width: 768px) {
+.hud-label {
+font-size: 14px;
+letter-spacing: 1px;
+}
 }
 
 .hud-value {
@@ -183,8 +200,10 @@ height: min(400px, 100vw - 20px);
 
 @media (max-width: 768px) {
 .canvas-wrap {
-width: min(350px, 90vw);
-height: min(350px, 90vw);
+width: calc(100vw - 20px);
+height: calc(100vw - 20px);
+max-width: 450px;
+max-height: 450px;
 margin-top: 10px;
 }
 }
@@ -422,9 +441,9 @@ content: '▶';
 
 @media (max-width: 768px) {
 .pause-btn {
-width: 60px;
-height: 60px;
-font-size: 28px;
+width: 45px;
+height: 45px;
+font-size: 20px;
 top: 10px;
 right: 10px;
 }
@@ -516,11 +535,11 @@ transform: scale(1.2);
 <span class="hud-value" id="fruits">0</span>
 </div>
 <div class="hud-item" id="shield-indicator" style="display:none;">
-<span class="hud-label">🛡️ BOUCLIER</span>
+<span class="hud-label">🛡️</span>
 <span class="hud-value" style="color: #b366ff;" id="shield-time">0</span>
 </div>
 <div class="hud-item" id="invisibility-indicator" style="display:none;">
-<span class="hud-label">👁️ INVISIBLE</span>
+<span class="hud-label">👁️</span>
 <span class="hud-value" style="color: #ffaa00;" id="invisibility-time">0</span>
 </div>
 </div>
