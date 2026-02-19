@@ -70,6 +70,7 @@ width: 100%;
 @media (max-width: 768px) {
 .wrapper {
 padding-top: 60px;
+padding-bottom: 200px;
 justify-content: flex-start;
 min-height: 100vh;
 }
@@ -428,6 +429,66 @@ top: 10px;
 right: 10px;
 }
 }
+
+.touch-control-zone {
+display: none;
+position: fixed;
+bottom: 0;
+left: 0;
+right: 0;
+height: 200px;
+background: rgba(13, 21, 32, 0.95);
+border-top: 2px solid var(--neon-green);
+box-shadow: 0 -4px 20px rgba(0, 255, 136, 0.3);
+z-index: 998;
+}
+
+@media (max-width: 768px) {
+.touch-control-zone {
+display: flex;
+align-items: center;
+justify-content: center;
+}
+}
+
+.touch-indicator {
+display: flex;
+flex-direction: column;
+align-items: center;
+gap: 15px;
+color: var(--neon-green);
+font-size: 12px;
+letter-spacing: 2px;
+text-shadow: var(--glow-green);
+}
+
+.touch-arrows {
+display: flex;
+flex-direction: column;
+align-items: center;
+gap: 10px;
+font-size: 32px;
+opacity: 0.5;
+}
+
+.arrow-horizontal {
+display: flex;
+gap: 60px;
+}
+
+.arrow-up, .arrow-down, .arrow-left, .arrow-right {
+color: var(--neon-cyan);
+text-shadow: var(--glow-cyan);
+transition: all 0.2s;
+}
+
+.touch-control-zone.active .arrow-up,
+.touch-control-zone.active .arrow-down,
+.touch-control-zone.active .arrow-left,
+.touch-control-zone.active .arrow-right {
+opacity: 1;
+transform: scale(1.2);
+}
 </style>
 </head>
 <body>
@@ -491,6 +552,22 @@ right: 10px;
 <span><span class="key">WASD</span> ALTERNATIF</span>
 <span><span class="key">P</span> PAUSE</span>
 <span><span class="key">👆</span> SWIPE TACTILE</span>
+</div>
+
+<!-- Zone de contrôle tactile pour mobile -->
+<div class="touch-control-zone" id="touch-zone">
+<div class="touch-indicator">
+<span>👆 ZONE DE CONTRÔLE</span>
+<div class="touch-arrows">
+<div class="arrow-up">↑</div>
+<div class="arrow-horizontal">
+<div class="arrow-left">←</div>
+<div class="arrow-right">→</div>
+</div>
+<div class="arrow-down">↓</div>
+</div>
+</div>
+</div>
 </div>
 
 <button class="pause-btn" id="pause-btn" style="display:none">
@@ -795,13 +872,58 @@ e.stopPropagation();
 this.#togglePause();
 });
 
-// Contrôles tactiles améliorés
+// Zone de contrôle tactile pour mobile
+const touchZone = document.getElementById('touch-zone');
 let touchStartX = 0;
 let touchStartY = 0;
 let touchMoved = false;
 
-const minSwipeDistance = 20; // Réduit de 30 à 20 pour plus de réactivité
+const minSwipeDistance = 20;
 
+// Événements sur la zone de contrôle tactile
+touchZone.addEventListener('touchstart', e => {
+e.preventDefault();
+touchStartX = e.changedTouches[0].screenX;
+touchStartY = e.changedTouches[0].screenY;
+touchMoved = false;
+touchZone.classList.add('active');
+}, { passive: false });
+
+touchZone.addEventListener('touchmove', e => {
+e.preventDefault();
+if (this.state !== 'running' || touchMoved) return;
+
+const touchCurrentX = e.changedTouches[0].screenX;
+const touchCurrentY = e.changedTouches[0].screenY;
+
+const deltaX = touchCurrentX - touchStartX;
+const deltaY = touchCurrentY - touchStartY;
+
+if (Math.abs(deltaX) > minSwipeDistance || Math.abs(deltaY) > minSwipeDistance) {
+touchMoved = true;
+
+if (Math.abs(deltaX) > Math.abs(deltaY)) {
+if (deltaX > 0) {
+this.snake.setDir(1, 0);
+} else {
+this.snake.setDir(-1, 0);
+}
+} else {
+if (deltaY > 0) {
+this.snake.setDir(0, 1);
+} else {
+this.snake.setDir(0, -1);
+}
+}
+}
+}, { passive: false });
+
+touchZone.addEventListener('touchend', e => {
+e.preventDefault();
+touchZone.classList.remove('active');
+}, { passive: false });
+
+// Contrôles tactiles sur le canvas (gardés pour compatibilité)
 this.canvas.addEventListener('touchstart', e => {
 e.preventDefault();
 touchStartX = e.changedTouches[0].screenX;
@@ -819,24 +941,20 @@ const touchCurrentY = e.changedTouches[0].screenY;
 const deltaX = touchCurrentX - touchStartX;
 const deltaY = touchCurrentY - touchStartY;
 
-// Détection rapide pendant le mouvement
 if (Math.abs(deltaX) > minSwipeDistance || Math.abs(deltaY) > minSwipeDistance) {
 touchMoved = true;
 
-// Déterminer la direction du swipe
 if (Math.abs(deltaX) > Math.abs(deltaY)) {
-// Swipe horizontal
 if (deltaX > 0) {
-this.snake.setDir(1, 0); // Droite
+this.snake.setDir(1, 0);
 } else {
-this.snake.setDir(-1, 0); // Gauche
+this.snake.setDir(-1, 0);
 }
 } else {
-// Swipe vertical
 if (deltaY > 0) {
-this.snake.setDir(0, 1); // Bas
+this.snake.setDir(0, 1);
 } else {
-this.snake.setDir(0, -1); // Haut
+this.snake.setDir(0, -1);
 }
 }
 }
